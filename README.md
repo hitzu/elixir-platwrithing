@@ -10,23 +10,13 @@ using MCP and Playwright to explore, test, and debug web UIs.
 
 ## Flows
 
-| Route | Description | Status |
-|---|---|---|
-| `/` | Home — links to all flows | — |
-| `/qualifier` | Debt eligibility form | Has YAML spec |
-| `/contact-preference` | Contact channel & time picker | YAML spec — no test yet |
-| `/offer` | Plan selector | YAML spec with seeded bug |
-| `/contracts` | Service agreement — accept terms | Enrollment step |
-
----
-
-## Running the app locally
-
-```bash
-cd phoenix_playwrithing
-mix setup       # install deps + build assets (first time)
-mix phx.server  # start on http://localhost:4000
-```
+| Route                 | Description                      | Status                    |
+| --------------------- | -------------------------------- | ------------------------- |
+| `/`                   | Home — links to all flows        | —                         |
+| `/qualifier`          | Debt eligibility form            | Has YAML spec             |
+| `/contact-preference` | Contact channel & time picker    | YAML spec — no test yet   |
+| `/offer`              | Plan selector                    | `docs/flows/offer.yaml`   |
+| `/contracts`          | Service agreement — accept terms | Enrollment step           |
 
 ---
 
@@ -67,8 +57,10 @@ Hay dos formas. Elige la que mejor se adapte a tu flujo.
       "command": "npx",
       "args": [
         "@playwright/mcp@latest",
-        "--browser", "chrome",
-        "--test-id-attribute", "data-testid"
+        "--browser",
+        "chrome",
+        "--test-id-attribute",
+        "data-testid"
       ]
     }
   }
@@ -93,8 +85,10 @@ Crea el archivo `.cursor/mcp.json` en la raíz del proyecto:
       "command": "npx",
       "args": [
         "@playwright/mcp@latest",
-        "--browser", "chrome",
-        "--test-id-attribute", "data-testid"
+        "--browser",
+        "chrome",
+        "--test-id-attribute",
+        "data-testid"
       ]
     }
   }
@@ -149,37 +143,55 @@ Con la app corriendo (`mix phx.server`), lanza Claude en modo interactivo:
 claude
 ```
 
-Luego, en el prompt de Claude, pega instrucciones como estas durante la presentación:
+Luego, en el prompt de Claude, pega instrucciones como estas durante la presentación.
 
-**Momento 1 — explorar la app:**
-```
-Read docs/flows/qualifier.yaml and then open http://localhost:4000/qualifier.
-Explore the page and confirm that all data-testid selectors described in the YAML
-are present in the DOM.
-```
+Usa siempre el **MCP de Playwright** para abrir la app, interactuar con la UI y comprobar el DOM; la lectura de YAML/archivos complementa, pero no sustituye al navegador.
 
-**Momento 2 — ejecutar el flujo happy path:**
-```
-Using the qualifier flow spec in docs/flows/qualifier.yaml, navigate the form,
-fill it with valid data (debt_amount: 15000), submit it, and assert that the
-success message "Your profile has been accepted" is visible.
-```
+### Plantilla reutilizable — ejecutar happy path desde un flow YAML
 
-**Momento 3 — explorar un flujo sin spec:**
+Sustituye `<FLOW_FILE>` por el nombre del archivo bajo `docs/flows/` (por ejemplo `qualifier.yaml` o `contact_preference.yaml`). Vuelve a pegar este mismo bloque cada vez que quieras demostrar otro flujo ya especificado.
+
 ```
-Navigate to http://localhost:4000/contact-preference. Explore all interactive
-elements and their data-testid attributes. Then update docs/flows/contact_preference.yaml
-with a complete steps block covering the happy path and validation errors.
+Read docs/flows/<FLOW_FILE>.yaml. Using the Playwright MCP browser tools, open the
+URL derived from that spec (host + path), follow the steps for the happy path with
+the field values the YAML implies (e.g. debt_amount: 15000 for qualifier), submit,
+and assert every success outcome described in the spec (e.g. visible text
+"Your profile has been accepted" when the spec says so).
 ```
 
-**Momento 4 — detectar el bug:**
+**Momento 1 — explorar la app (spec existente):**
+
 ```
-Navigate to http://localhost:4000/offer. Select the Premium plan.
-Assert that the element [data-testid="premium-support-message"] is visible
-and contains "Priority support included". If the assertion fails, read
-docs/flows/offer_bug_notes.yaml and the source file
-lib/phoenix_playwrithing_web/live/offer_live.ex, identify the root cause,
-and propose the fix.
+Read docs/flows/qualifier.yaml. With Playwright MCP, open http://localhost:4000/qualifier
+and execute the test.
+```
+
+**Momento 2 — explorar un flujo sin spec y generar YAML:**
+
+```
+With Playwright MCP, navigate to http://localhost:4000/contact-preference.
+Explore every interactive control and its data-testid attributes. Then create or
+update docs/flows/contact_preference.yaml with a complete steps block for the
+happy path and for validation errors, matching the project’s YAML format under
+docs/flows/.
+```
+
+**Momento 2a — mismo flujo “ejecutar YAML”, archivo nuevo:**
+
+Tras generar `contact_preference.yaml`, **repite la plantilla** sustituyendo el archivo:
+
+```
+Read docs/flows/contact_preference.yaml. Using the Playwright MCP browser tools,
+open the URL from the spec, execute the happy path per the steps, and assert the
+success criteria defined in that YAML.
+```
+
+**Momento 3 — spec como “prueba que debería pasar”:**
+
+```
+Read docs/flows/offer.yaml. Using Playwright MCP, open the URL from the spec
+and run the steps you need from that file. If something fails, investigate and
+propose a concrete code fix.
 ```
 
 ### Configuración alternativa: Claude Desktop
@@ -200,8 +212,10 @@ Agrega:
       "command": "npx",
       "args": [
         "@playwright/mcp@latest",
-        "--browser", "chrome",
-        "--test-id-attribute", "data-testid"
+        "--browser",
+        "chrome",
+        "--test-id-attribute",
+        "data-testid"
       ]
     }
   }
@@ -261,28 +275,33 @@ playwright test docs/flows/qualifier.yaml
 ## Demo script (10-15 min)
 
 ### 1. "Here is the app"
+
 - `mix phx.server`
 - Open [http://localhost:4000](http://localhost:4000)
 - Show the three flow cards
 
 ### 2. "Here is the YAML spec"
+
 - Open `docs/flows/qualifier.yaml`
 - Explain fields, steps, and `data-testid` selectors
 
 ### 3. "Agent explores and generates a test"
+
 - Point to `docs/flows/contact_preference.yaml` — no steps yet
 - Agent navigates `/contact-preference`, inspects `data-testid` attributes,
   and produces a new YAML spec with steps + assertions
 
 ### 4. "Agent executes the test"
+
 - Agent runs the generated steps via global Playwright
 - Assertions pass
 
-### 5. "Agent finds a bug in /offer"
-- Agent navigates `/offer`, selects the Premium plan
-- Asserts `[data-testid="premium-support-message"]` is visible — **fails**
-- Agent reads `docs/flows/offer_bug_notes.yaml` and the LiveView source
-- Identifies `"premium-plan"` vs `"premium"` mismatch and proposes the fix
+### 5. "Agent runs the offer spec — Premium-only regression"
+
+- Agent reads `docs/flows/offer.yaml` and runs `steps.basic_banner` / `steps.standard_banner` — **pass**
+- Each plan has a detail `alert` under the grid; Basic and Standard use the correct `:if` plan ids
+- Agent runs `steps.premium_banner` — **fails** until `premium-support-message` uses `"premium"` not `"premium-plan"`
+- Agent proposes the fix in `offer_live.ex` so behavior matches the spec
 
 ---
 
@@ -294,26 +313,24 @@ phoenix_playwrithing/
 │   ├── home_live.ex
 │   ├── qualifier_live.ex
 │   ├── contact_preference_live.ex
-│   └── offer_live.ex              ← bug is here (~line 75)
+│   └── offer_live.ex              ← plan banners (intentional Premium :if drift)
 └── docs/flows/
     ├── qualifier.yaml             ← spec for flow 1
     ├── contact_preference.yaml    ← spec for flow 2 (no steps yet)
-    └── offer_bug_notes.yaml       ← documents the seeded bug
+    └── offer.yaml                 ← offer flow / regression baseline
 ```
 
 ---
 
-## The seeded bug
+## The seeded bug (Premium detail banner)
 
-**File:** `lib/phoenix_playwrithing_web/live/offer_live.ex`
+[`docs/flows/offer.yaml`](docs/flows/offer.yaml) describes three detail banners under the plan grid:
+`basic-support-message`, `standard-support-message`, and `premium-support-message`. Basic and
+Standard match `phx-value-plan` ids and **work**. Premium intentionally uses a wrong `:if` so
+agents can see **two plans show an extra alert, one does not**.
 
-```heex
-<%!-- BUG: checks "premium-plan" but stored value is "premium" --%>
-<div :if={@selected_plan == "premium-plan"} data-testid="premium-support-message">
-  Priority support included
-</div>
-```
+**File:** `lib/phoenix_playwrithing_web/live/offer_live.ex` — `premium-support-message` block.
 
-**Fix:** change `"premium-plan"` → `"premium"`.
+**Fix:** `@selected_plan == "premium-plan"` → `@selected_plan == "premium"`.
 
-Full details: `docs/flows/offer_bug_notes.yaml`.
+To restore the failing demo after fixing, temporarily reintroduce `"premium-plan"` on that `:if`.

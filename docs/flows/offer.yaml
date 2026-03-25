@@ -1,0 +1,199 @@
+id: offer
+flow: offer
+host: localhost
+path: /offer
+
+description: >
+  Debt relief plan chooser: three selectable cards (Basic, Standard, Premium).
+  Selecting Basic or Standard shows an informational alert below the grid
+  (each plan has its own data-testid). Selecting Premium should show a third
+  alert about priority support; a known implementation bug prevents that
+  banner until the :if condition matches the real plan id ("premium"). User
+  confirms with one submit button; empty submit validates; success hides the
+  picker.
+
+interactive_elements:
+  - description: Page heading block
+    data_testid: page-title
+
+  - description: Plan card — Basic (selectable)
+    data_testid: plan-card-basic
+
+  - description: Plan card — Standard (selectable)
+    data_testid: plan-card-standard
+
+  - description: Plan card — Premium (selectable)
+    data_testid: plan-card-premium
+
+  - description: Badge on Premium card only
+    data_testid: premium-plan-selector
+
+  - description: Info alert when Basic is selected (working)
+    data_testid: basic-support-message
+
+  - description: Info alert when Standard is selected (working)
+    data_testid: standard-support-message
+
+  - description: Info alert when Premium is selected (expected; bug if missing)
+    data_testid: premium-support-message
+
+  - description: Error copy when confirming with no plan
+    data_testid: error-plan
+
+  - description: Confirm selection
+    data_testid: submit-button
+    text: Confirm Selection
+
+  - description: Success alert after valid submit
+    data_testid: success-message
+
+behavior:
+  plan_ids:
+    note: >
+      Cards set selection to "basic", "standard", or "premium" (phx-value-plan).
+      Only one detail banner should appear at a time, matching the selection.
+
+  basic_banner:
+    condition: Selected plan id is "basic"
+    selector: "[data-testid='basic-support-message']"
+    must_contain:
+      - "Email-first support"
+
+  standard_banner:
+    condition: Selected plan id is "standard"
+    selector: "[data-testid='standard-support-message']"
+    must_contain:
+      - "Phone & negotiation"
+
+  premium_banner:
+    condition: Selected plan id is "premium" (must match assign from select_plan)
+    selector: "[data-testid='premium-support-message']"
+    must_contain:
+      - "Priority support included"
+      - "24 hours"
+    note: >
+      If this never appears while Basic/Standard banners work, compare the :if on
+      premium-support-message with phx-value-plan / plan ids in OfferLive.
+
+  submit_without_plan:
+    selector: "[data-testid='error-plan']"
+    text: "Please select a plan to continue"
+
+  submit_success:
+    selector: "[data-testid='success-message']"
+    note: >
+      Body includes "You selected the <plan_id> plan. A specialist will contact
+      you shortly." Form and plan grid are hidden until reset.
+
+steps:
+  basic_banner:
+    - action: navigate
+      url: "http://localhost:4000/offer"
+      description: Open offer flow
+
+    - action: wait
+      selector: "[data-testid='plan-card-basic']"
+
+    - action: click
+      selector: "[data-testid='plan-card-basic']"
+      description: Select Basic
+
+    - action: assert_visible
+      selector: "[data-testid='basic-support-message']"
+
+    - action: assert_text
+      selector: "[data-testid='basic-support-message']"
+      contains: "Email-first support"
+
+    - action: assert_not_present
+      selector: "[data-testid='premium-support-message']"
+
+    - action: assert_not_present
+      selector: "[data-testid='standard-support-message']"
+
+  standard_banner:
+    - action: navigate
+      url: "http://localhost:4000/offer"
+
+    - action: click
+      selector: "[data-testid='plan-card-standard']"
+
+    - action: assert_visible
+      selector: "[data-testid='standard-support-message']"
+
+    - action: assert_text
+      selector: "[data-testid='standard-support-message']"
+      contains: "Phone & negotiation"
+
+    - action: assert_not_present
+      selector: "[data-testid='basic-support-message']"
+
+    - action: assert_not_present
+      selector: "[data-testid='premium-support-message']"
+
+  premium_banner:
+    - action: navigate
+      url: "http://localhost:4000/offer"
+      description: Regression — fails until premium :if uses "premium"
+
+    - action: wait
+      selector: "[data-testid='plan-card-premium']"
+
+    - action: click
+      selector: "[data-testid='plan-card-premium']"
+      description: Select Premium
+
+    - action: assert_visible
+      selector: "[data-testid='premium-support-message']"
+
+    - action: assert_text
+      selector: "[data-testid='premium-support-message']"
+      contains: "Priority support included"
+
+    - action: assert_text
+      selector: "[data-testid='premium-support-message']"
+      contains: "24 hours"
+
+    - action: assert_not_present
+      selector: "[data-testid='basic-support-message']"
+
+    - action: assert_not_present
+      selector: "[data-testid='standard-support-message']"
+
+  validation_empty_submit:
+    - action: navigate
+      url: "http://localhost:4000/offer"
+
+    - action: click
+      selector: "[data-testid='submit-button']"
+
+    - action: assert_visible
+      selector: "[data-testid='error-plan']"
+
+    - action: assert_text
+      selector: "[data-testid='error-plan']"
+      contains: "Please select a plan to continue"
+
+  happy_path_confirm_basic:
+    - action: navigate
+      url: "http://localhost:4000/offer"
+
+    - action: click
+      selector: "[data-testid='plan-card-basic']"
+
+    - action: click
+      selector: "[data-testid='submit-button']"
+
+    - action: assert_visible
+      selector: "[data-testid='success-message']"
+
+    - action: assert_text
+      selector: "[data-testid='success-message']"
+      contains: "You selected the basic plan"
+
+assertions:
+  - Basic shows basic-support-message only among the three detail banners
+  - Standard shows standard-support-message only
+  - Premium should show premium-support-message (fails while :if uses wrong id)
+  - Confirm without plan shows error-plan
+  - Confirm with a plan shows success-message including that plan id

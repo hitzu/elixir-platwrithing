@@ -18,9 +18,6 @@ defmodule PhoenixPlaywrithingWeb.OfferLive do
       id: "premium",
       label: "Premium",
       price: "$199/mo",
-      # NOTE: "Priority support included" is a key feature of this plan.
-      # The UI should display it when this plan is selected.
-      # See docs/flows/offer_bug_notes.yaml for the known bug.
       features: ["Everything in Standard", "Dedicated advisor", "Priority support included"]
     }
   ]
@@ -101,13 +98,30 @@ defmodule PhoenixPlaywrithingWeb.OfferLive do
           </div>
         </div>
 
+        <div
+          :if={@selected_plan == "basic"}
+          data-testid="basic-support-message"
+          class="alert alert-info mb-4"
+        >
+          <span class="font-semibold">Email-first support</span>
+          <span class="text-sm ml-1">— Track progress in the app and message us anytime.</span>
+        </div>
+
+        <div
+          :if={@selected_plan == "standard"}
+          data-testid="standard-support-message"
+          class="alert alert-info mb-4"
+        >
+          <span class="font-semibold">Phone & negotiation</span>
+          <span class="text-sm ml-1">— We can negotiate with creditors and take your calls during business hours.</span>
+        </div>
+
         <%!--
-          INTENTIONAL BUG FOR DEMO:
-          This block should render when @selected_plan == "premium",
-          but the condition below checks for "premium-plan" (with a hyphen).
-          As a result, selecting the Premium plan never shows
-          "Priority support included" in the highlighted box.
-          See: docs/flows/offer_bug_notes.yaml
+          INTENTIONAL BUG (MCP / agent demo): Basic & Standard banners use the real plan ids.
+          This block should use @selected_plan == "premium" to match phx-value-plan, but it
+          incorrectly checks "premium-plan". Selecting Premium shows no detail banner while
+          the other plans do — compare with basic-support-message / standard-support-message.
+          Spec: docs/flows/offer.yaml
         --%>
         <div
           :if={@selected_plan == "premium-plan"}
